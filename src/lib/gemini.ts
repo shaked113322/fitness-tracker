@@ -1,13 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function analyzeProgress(data: {
   workouts: Array<{ date: string; name: string; exercises: Array<{ name: string; sets: number; reps: number; weight: number | null }> }>;
   bodyStats: Array<{ date: string; weight: number | null; chest: number | null; waist: number | null; hips: number | null; arms: number | null; legs: number | null; bodyFat: number | null }>;
 }) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
   const prompt = `
 אתה מאמן כושר ותזונאי מקצועי. נתח את נתוני האימון וההתקדמות הבאים ותן תובנות מפורטות בעברית.
 
@@ -27,8 +25,12 @@ ${JSON.stringify(data.bodyStats.slice(-20), null, 2)}
 ענה בצורה ידידותית ומעודדת בעברית.
 `;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return completion.choices[0].message.content ?? "";
 }
 
 export async function askFitnessQuestion(question: string, context: {
@@ -36,8 +38,6 @@ export async function askFitnessQuestion(question: string, context: {
   avgWeight?: number;
   totalWorkouts?: number;
 }) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
   const prompt = `
 אתה מאמן כושר ותזונאי מקצועי. ענה על השאלה הבאה בעברית בצורה מקצועית וידידותית.
 
@@ -51,6 +51,10 @@ export async function askFitnessQuestion(question: string, context: {
 ענה בעברית בצורה ברורה ומעשית.
 `;
 
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return completion.choices[0].message.content ?? "";
 }
