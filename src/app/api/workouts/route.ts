@@ -1,8 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { NextRequest } from "next/server";
 
 export async function GET() {
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
   const workouts = await prisma.workout.findMany({
+    where: { userId: session.id },
     orderBy: { date: "desc" },
     include: { exercises: true },
   });
@@ -10,11 +15,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { name, duration, notes, exercises } = body;
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { name, duration, notes, exercises } = await request.json();
 
   const workout = await prisma.workout.create({
     data: {
+      userId: session.id,
       name,
       duration: duration ?? null,
       notes: notes ?? null,
