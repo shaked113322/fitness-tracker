@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Dumbbell, BarChart2, Camera, Brain, Home, Menu, X, LogOut, User } from "lucide-react";
+import { Dumbbell, BarChart2, Camera, Brain, Home, Menu, X, LogOut, User, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const navLinks = [
@@ -17,12 +17,12 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
+  const [user, setUser] = useState<{ username: string; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => setUsername(d.user?.username ?? null));
+      .then((d) => setUser(d.user ?? null));
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -53,10 +53,15 @@ export default function Navbar() {
 
           {/* User + Logout */}
           <div className="hidden md:flex items-center gap-3">
-            {username && (
+            {user?.isAdmin && (
+              <Link href="/admin" className={`flex items-center gap-1.5 text-sm px-2 py-1.5 rounded-lg transition-colors ${pathname.startsWith("/admin") ? "bg-yellow-500/20 text-yellow-400" : "text-gray-500 hover:text-yellow-400 hover:bg-gray-800"}`}>
+                <Shield className="w-4 h-4" />Admin
+              </Link>
+            )}
+            {user && (
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <User className="w-4 h-4" />
-                <span>{username}</span>
+                <span>{user.username}</span>
               </div>
             )}
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-400 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-800">
@@ -78,7 +83,8 @@ export default function Navbar() {
                 <Icon className="w-4 h-4" />{label}
               </Link>
             ))}
-            {username && <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500"><User className="w-4 h-4" />{username}</div>}
+            {user?.isAdmin && <Link href="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-yellow-400 hover:bg-gray-800 transition-colors"><Shield className="w-4 h-4" />Admin</Link>}
+            {user && <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500"><User className="w-4 h-4" />{user.username}</div>}
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-gray-800 transition-colors">
               <LogOut className="w-4 h-4" />יציאה
             </button>

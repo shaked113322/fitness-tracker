@@ -11,10 +11,11 @@ export interface SessionUser {
   id: string;
   email: string;
   username: string;
+  isAdmin: boolean;
 }
 
 export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({ id: user.id, email: user.email, username: user.username })
+  const token = await new SignJWT({ id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("30d")
     .sign(SECRET);

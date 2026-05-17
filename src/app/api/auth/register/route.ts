@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     data: { email, username, password: hashed },
   });
 
-  await createSession({ id: user.id, email: user.email, username: user.username });
+  await createSession({ id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin });
 
   return Response.json({ success: true }, { status: 201 });
 }

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "אימייל/שם משתמש או סיסמה שגויים" }, { status: 401 });
   }
 
-  await createSession({ id: user.id, email: user.email, username: user.username });
+  await createSession({ id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin });
 
   return Response.json({ success: true });
 }
