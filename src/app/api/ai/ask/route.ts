@@ -17,11 +17,18 @@ export async function POST(request: NextRequest) {
     prisma.bodyStat.findFirst({ where: { userId: session.id }, orderBy: { date: "desc" } }),
   ]);
 
-  const answer = await askFitnessQuestion(question, {
-    totalWorkouts,
-    recentWorkouts,
-    avgWeight: latestStat?.weight ?? undefined,
-  });
-
-  return Response.json({ answer });
+  try {
+    const answer = await askFitnessQuestion(question, {
+      totalWorkouts,
+      recentWorkouts,
+      avgWeight: latestStat?.weight ?? undefined,
+    });
+    return Response.json({ answer });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
+      return Response.json({ error: "מכסת ה-AI הגיעה לגבול. נסה שוב מאוחר יותר." }, { status: 429 });
+    }
+    return Response.json({ error: "שגיאה בשירות ה-AI. נסה שוב." }, { status: 500 });
+  }
 }

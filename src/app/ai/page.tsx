@@ -41,7 +41,7 @@ export default function AIPage() {
         body: JSON.stringify({ question: q }),
       });
       const data = await res.json();
-      setChat((prev) => [...prev, { role: "ai", text: data.answer }]);
+      setChat((prev) => [...prev, { role: "ai", text: data.answer || data.error || "שגיאה. אנא נסה שוב." }]);
     } catch {
       setChat((prev) => [...prev, { role: "ai", text: "שגיאה. אנא נסה שוב." }]);
     } finally {

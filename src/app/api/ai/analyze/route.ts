@@ -25,20 +25,27 @@ export async function GET() {
     return Response.json({ analysis: "אין מספיק נתונים לניתוח עדיין. הוסף אימונים ומדדים כדי לקבל תובנות." });
   }
 
-  const analysis = await analyzeProgress({
-    workouts: workouts.map((w) => ({
-      date: format(new Date(w.date), "dd/MM/yyyy"),
-      name: w.name,
-      exercises: w.exercises.map((e) => ({
-        name: e.name, sets: e.sets, reps: e.reps, weight: e.weight,
+  try {
+    const analysis = await analyzeProgress({
+      workouts: workouts.map((w) => ({
+        date: format(new Date(w.date), "dd/MM/yyyy"),
+        name: w.name,
+        exercises: w.exercises.map((e) => ({
+          name: e.name, sets: e.sets, reps: e.reps, weight: e.weight,
+        })),
       })),
-    })),
-    bodyStats: bodyStats.map((s) => ({
-      date: format(new Date(s.date), "dd/MM/yyyy"),
-      weight: s.weight, chest: s.chest, waist: s.waist,
-      hips: s.hips, arms: s.arms, legs: s.legs, bodyFat: s.bodyFat,
-    })),
-  });
-
-  return Response.json({ analysis });
+      bodyStats: bodyStats.map((s) => ({
+        date: format(new Date(s.date), "dd/MM/yyyy"),
+        weight: s.weight, chest: s.chest, waist: s.waist,
+        hips: s.hips, arms: s.arms, legs: s.legs, bodyFat: s.bodyFat,
+      })),
+    });
+    return Response.json({ analysis });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
+      return Response.json({ analysis: "מכסת ה-AI הגיעה לגבול. נסה שוב מאוחר יותר." });
+    }
+    return Response.json({ analysis: "שגיאה בשירות ה-AI. נסה שוב." });
+  }
 }
