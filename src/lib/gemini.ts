@@ -6,7 +6,7 @@ export async function analyzeProgress(data: {
   workouts: Array<{ date: string; name: string; exercises: Array<{ name: string; sets: number; reps: number; weight: number | null }> }>;
   bodyStats: Array<{ date: string; weight: number | null; chest: number | null; waist: number | null; hips: number | null; arms: number | null; legs: number | null; bodyFat: number | null }>;
 }) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
 אתה מאמן כושר ותזונאי מקצועי. נתח את נתוני האימון וההתקדמות הבאים ותן תובנות מפורטות בעברית.
@@ -36,7 +36,7 @@ export async function askFitnessQuestion(question: string, context: {
   avgWeight?: number;
   totalWorkouts?: number;
 }) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
 אתה מאמן כושר ותזונאי מקצועי. ענה על השאלה הבאה בעברית בצורה מקצועית וידידותית.
