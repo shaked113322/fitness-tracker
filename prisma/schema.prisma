@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workout {
+  id        String     @id @default(cuid())
+  date      DateTime   @default(now())
+  name      String
+  notes     String?
+  duration  Int?
+  exercises Exercise[]
+  createdAt DateTime   @default(now())
+}
+
+model Exercise {
+  id        String  @id @default(cuid())
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId String
+  name      String
+  sets      Int
+  reps      Int
+  weight    Float?
+  notes     String?
+}
+
+model BodyStat {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  weight    Float?
+  chest     Float?
+  waist     Float?
+  hips      Float?
+  arms      Float?
+  legs      Float?
+  bodyFat   Float?
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Photo {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  url         String
+  description String?
+  createdAt   DateTime @default(now())
+}
