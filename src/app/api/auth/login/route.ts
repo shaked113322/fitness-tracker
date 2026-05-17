@@ -10,12 +10,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "כל השדות הם חובה" }, { status: 400 });
   }
 
-  // Support login with email OR username
+  const normalized = identifier.trim().toLowerCase();
+
+  // Support login with email OR username (case-insensitive)
   const user = await prisma.user.findFirst({
     where: {
       OR: [
-        { email: identifier },
-        { username: identifier },
+        { email: normalized },
+        { username: normalized },
       ],
     },
   });

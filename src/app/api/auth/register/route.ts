@@ -14,12 +14,15 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "הסיסמה חייבת להכיל לפחות 6 תווים" }, { status: 400 });
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedUsername = username.trim().toLowerCase();
+
   const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
+    where: { OR: [{ email: normalizedEmail }, { username: normalizedUsername }] },
   });
 
   if (existing) {
-    if (existing.email === email) {
+    if (existing.email === normalizedEmail) {
       return Response.json({ error: "האימייל כבר קיים במערכת" }, { status: 409 });
     }
     return Response.json({ error: "שם המשתמש כבר תפוס" }, { status: 409 });
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
   const hashed = await bcrypt.hash(password, 12);
 
   const user = await prisma.user.create({
-    data: { email, username, password: hashed },
+    data: { email: normalizedEmail, username: normalizedUsername, password: hashed },
   });
 
   await createSession({ id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin });
