@@ -1,15 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Scale, Save } from "lucide-react";
+
+const FIELDS = [
+  { key: "weight", label: 'משקל (ק"ג)', placeholder: "75.5" },
+  { key: "chest", label: 'חזה (ס"מ)', placeholder: "100" },
+  { key: "waist", label: 'מותן (ס"מ)', placeholder: "80" },
+  { key: "hips", label: 'ירך (ס"מ)', placeholder: "95" },
+  { key: "arms", label: 'זרועות (ס"מ)', placeholder: "35" },
+  { key: "legs", label: 'רגליים (ס"מ)', placeholder: "55" },
+  { key: "bodyFat", label: "אחוז שומן (%)", placeholder: "18" },
+];
+
+const empty = { weight: "", chest: "", waist: "", hips: "", arms: "", legs: "", bodyFat: "", notes: "" };
 
 export default function NewBodyStatPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    weight: "", chest: "", waist: "", hips: "", arms: "", legs: "", bodyFat: "", notes: "",
-  });
+  const [form, setForm] = useState(empty);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/body-stats")
+      .then((r) => r.json())
+      .then((data) => {
+        const last = Array.isArray(data) ? data[0] : null;
+        if (last) {
+          setForm({
+            weight: last.weight ?? "",
+            chest: last.chest ?? "",
+            waist: last.waist ?? "",
+            hips: last.hips ?? "",
+            arms: last.arms ?? "",
+            legs: last.legs ?? "",
+            bodyFat: last.bodyFat ?? "",
+            notes: "",
+          });
+        }
+        setLoaded(true);
+      });
+  }, []);
 
   const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -21,13 +53,13 @@ export default function NewBodyStatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          weight: form.weight ? parseFloat(form.weight) : null,
-          chest: form.chest ? parseFloat(form.chest) : null,
-          waist: form.waist ? parseFloat(form.waist) : null,
-          hips: form.hips ? parseFloat(form.hips) : null,
-          arms: form.arms ? parseFloat(form.arms) : null,
-          legs: form.legs ? parseFloat(form.legs) : null,
-          bodyFat: form.bodyFat ? parseFloat(form.bodyFat) : null,
+          weight: form.weight !== "" ? parseFloat(String(form.weight)) : null,
+          chest: form.chest !== "" ? parseFloat(String(form.chest)) : null,
+          waist: form.waist !== "" ? parseFloat(String(form.waist)) : null,
+          hips: form.hips !== "" ? parseFloat(String(form.hips)) : null,
+          arms: form.arms !== "" ? parseFloat(String(form.arms)) : null,
+          legs: form.legs !== "" ? parseFloat(String(form.legs)) : null,
+          bodyFat: form.bodyFat !== "" ? parseFloat(String(form.bodyFat)) : null,
           notes: form.notes || null,
         }),
       });
@@ -38,16 +70,6 @@ export default function NewBodyStatPage() {
     }
   };
 
-  const fields = [
-    { key: "weight", label: 'משקל (ק"ג)', placeholder: "75.5" },
-    { key: "chest", label: 'חזה (ס"מ)', placeholder: "100" },
-    { key: "waist", label: 'מותן (ס"מ)', placeholder: "80" },
-    { key: "hips", label: 'ירך (ס"מ)', placeholder: "95" },
-    { key: "arms", label: 'זרועות (ס"מ)', placeholder: "35" },
-    { key: "legs", label: 'רגליים (ס"מ)', placeholder: "55" },
-    { key: "bodyFat", label: "אחוז שומן (%)", placeholder: "18" },
-  ];
-
   return (
     <div className="max-w-lg mx-auto space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -57,14 +79,16 @@ export default function NewBodyStatPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
-          <p className="text-sm text-gray-500">מלא רק את המדדים שאתה רוצה לעקוב אחריהם</p>
+          <p className="text-sm text-gray-500">
+            {loaded ? "הערכים הקודמים שלך הועתקו — שנה רק מה שהשתנה" : "טוען מדדים קודמים..."}
+          </p>
           <div className="grid grid-cols-2 gap-4">
-            {fields.map(({ key, label, placeholder }) => (
+            {FIELDS.map(({ key, label, placeholder }) => (
               <div key={key}>
                 <label className="block text-sm text-gray-400 mb-1.5">{label}</label>
                 <input
                   type="number"
-                  value={form[key as keyof typeof form]}
+                  value={String(form[key as keyof typeof form])}
                   onChange={(e) => update(key, e.target.value)}
                   placeholder={placeholder}
                   step="0.1"

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { Users, Dumbbell, Scale, Camera, Shield } from "lucide-react";
 import Link from "next/link";
+import DeleteUserButton from "./DeleteUserButton";
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -49,40 +50,37 @@ export default async function AdminPage() {
         </div>
         <div className="divide-y divide-gray-800">
           {users.map((user) => (
-            <Link
-              key={user.id}
-              href={`/admin/users/${user.id}`}
-              className="flex items-center justify-between px-5 py-4 hover:bg-gray-800/50 transition-colors group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm">
+            <div key={user.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-800/50 transition-colors group">
+              <Link href={`/admin/users/${user.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold text-sm shrink-0">
                   {user.username[0].toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-white">{user.username}</p>
                     {user.isAdmin && (
                       <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">Admin</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">{user.email}</p>
+                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-6 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
+              </Link>
+              <div className="flex items-center gap-4 text-sm text-gray-500 shrink-0">
+                <span className="hidden sm:flex items-center gap-1">
                   <Dumbbell className="w-3.5 h-3.5" /> {user._count.workouts}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="hidden sm:flex items-center gap-1">
                   <Scale className="w-3.5 h-3.5" /> {user._count.bodyStats}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="hidden sm:flex items-center gap-1">
                   <Camera className="w-3.5 h-3.5" /> {user._count.photos}
                 </span>
-                <span className="text-gray-600 group-hover:text-gray-400 transition-colors">
+                <span className="hidden md:block text-gray-600 group-hover:text-gray-400 transition-colors">
                   {format(new Date(user.createdAt), "d/M/yy")}
                 </span>
+                {!user.isAdmin && <DeleteUserButton userId={user.id} username={user.username} />}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>

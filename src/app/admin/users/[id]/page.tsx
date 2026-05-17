@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowRight, Dumbbell, Scale, Camera, User } from "lucide-react";
+import { ArrowRight, Dumbbell, Scale, Camera } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import DeleteUserButton from "../../DeleteUserButton";
 
 export default async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -35,13 +36,14 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">
           {user.username[0].toUpperCase()}
         </div>
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-white">{user.username}</h1>
             {user.isAdmin && <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">Admin</span>}
           </div>
           <p className="text-sm text-gray-500">{user.email} · נרשם {format(new Date(user.createdAt), "d/M/yyyy")}</p>
         </div>
+        {!user.isAdmin && <DeleteUserButton userId={user.id} username={user.username} redirectTo="/admin" />}
       </div>
 
       {/* Summary */}
