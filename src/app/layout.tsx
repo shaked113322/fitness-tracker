@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 export const metadata: Metadata = {
   title: "מעקב כושר",
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="he" dir="rtl" className="h-full">
       <body className="min-h-full flex flex-col bg-gray-950 text-gray-100">
         <Navbar />
+        <AnnouncementBanner />
         <main className="flex-1 container mx-auto px-4 py-6 max-w-6xl">
           {children}
         </main>

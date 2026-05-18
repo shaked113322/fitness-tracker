@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "אימייל/שם משתמש או סיסמה שגויים" }, { status: 401 });
   }
 
+  if (user.banned) {
+    return Response.json({ error: "החשבון שלך חסום. פנה לאדמין לקבלת עזרה." }, { status: 403 });
+  }
+
   await createSession({ id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin });
 
   return Response.json({ success: true });

@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowRight, Dumbbell, Scale, Camera } from "lucide-react";
+import { ArrowRight, Dumbbell, Scale, Camera, Shield } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import DeleteUserButton from "../../DeleteUserButton";
+import UserAdminActions from "./UserAdminActions";
 
 export default async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -37,14 +38,24 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
           {user.username[0].toUpperCase()}
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-white">{user.username}</h1>
-            {user.isAdmin && <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full">Admin</span>}
+            {user.isAdmin && <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full flex items-center gap-1"><Shield className="w-3 h-3" />Admin</span>}
+            {user.banned && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">חסום</span>}
           </div>
           <p className="text-sm text-gray-500">{user.email} · נרשם {format(new Date(user.createdAt), "d/M/yyyy")}</p>
         </div>
-        {!user.isAdmin && <DeleteUserButton userId={user.id} username={user.username} redirectTo="/admin" />}
       </div>
+
+      {/* Admin Actions */}
+      {!user.isAdmin && (
+        <UserAdminActions
+          userId={user.id}
+          username={user.username}
+          banned={user.banned}
+          isAdmin={user.isAdmin}
+        />
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
@@ -117,6 +128,14 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Danger Zone */}
+      {!user.isAdmin && (
+        <div className="border border-red-500/20 rounded-xl p-5">
+          <h2 className="font-semibold text-red-400 mb-3">אזור מסוכן</h2>
+          <DeleteUserButton userId={user.id} username={user.username} redirectTo="/admin" />
         </div>
       )}
     </div>

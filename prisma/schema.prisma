@@ -12,12 +12,21 @@ model User {
   username          String             @unique
   password          String
   isAdmin           Boolean            @default(false)
+  banned            Boolean            @default(false)
   createdAt         DateTime           @default(now())
   workouts          Workout[]
   bodyStats         BodyStat[]
   photos            Photo[]
   workoutTemplates  WorkoutTemplate[]
   goals             Goal[]
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  message   String
+  color     String   @default("orange")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 model Workout {
