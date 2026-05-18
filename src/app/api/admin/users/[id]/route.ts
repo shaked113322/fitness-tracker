@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash } from "@node-rs/bcrypt";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -34,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (typeof body.isAdmin === "boolean") update.isAdmin = body.isAdmin;
   if (body.newPassword) {
     if (body.newPassword.length < 6) return Response.json({ error: "סיסמה קצרה מדי" }, { status: 400 });
-    update.password = await bcrypt.hash(body.newPassword, 12);
+    update.password = await bcryptHash(body.newPassword, 10);
   }
 
   if (Object.keys(update).length === 0) return Response.json({ error: "אין מה לעדכן" }, { status: 400 });

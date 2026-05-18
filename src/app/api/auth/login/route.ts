@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "אימייל/שם משתמש או סיסמה שגויים" }, { status: 401 });
   }
 
-  const valid = await bcrypt.compare(password, user.password);
+  const valid = await bcryptVerify(password, user.password);
   if (!valid) {
     return Response.json({ error: "אימייל/שם משתמש או סיסמה שגויים" }, { status: 401 });
   }

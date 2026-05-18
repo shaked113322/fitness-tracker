@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash } from "@node-rs/bcrypt";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "שם המשתמש כבר תפוס" }, { status: 409 });
   }
 
-  const hashed = await bcrypt.hash(password, 12);
+  const hashed = await bcryptHash(password, 10);
 
   const user = await prisma.user.create({
     data: { email: normalizedEmail, username: normalizedUsername, password: hashed },

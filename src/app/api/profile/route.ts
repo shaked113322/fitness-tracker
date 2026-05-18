@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession, createSession } from "@/lib/auth";
 import { NextRequest } from "next/server";
-import bcrypt from "bcryptjs";
+import { hash as bcryptHash, verify as bcryptVerify } from "@node-rs/bcrypt";
 
 export async function PUT(request: NextRequest) {
   const session = await getSession();
@@ -24,10 +24,10 @@ export async function PUT(request: NextRequest) {
 
   if (newPassword) {
     if (!currentPassword) return Response.json({ error: "נדרשת סיסמה נוכחית" }, { status: 400 });
-    const valid = await bcrypt.compare(currentPassword, user.password);
+    const valid = await bcryptVerify(currentPassword, user.password);
     if (!valid) return Response.json({ error: "הסיסמה הנוכחית שגויה" }, { status: 401 });
     if (newPassword.length < 6) return Response.json({ error: "הסיסמה חייבת להכיל לפחות 6 תווים" }, { status: 400 });
-    updateData.password = await bcrypt.hash(newPassword, 12);
+    updateData.password = await bcryptHash(newPassword, 10);
   }
 
   if (Object.keys(updateData).length === 0) {
