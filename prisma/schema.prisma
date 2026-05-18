@@ -7,15 +7,17 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  username  String     @unique
-  password  String
-  isAdmin   Boolean    @default(false)
-  createdAt DateTime   @default(now())
-  workouts  Workout[]
-  bodyStats BodyStat[]
-  photos    Photo[]
+  id                String             @id @default(cuid())
+  email             String             @unique
+  username          String             @unique
+  password          String
+  isAdmin           Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  workouts          Workout[]
+  bodyStats         BodyStat[]
+  photos            Photo[]
+  workoutTemplates  WorkoutTemplate[]
+  goals             Goal[]
 }
 
 model Workout {
@@ -65,4 +67,36 @@ model Photo {
   url         String
   description String?
   createdAt   DateTime @default(now())
+}
+
+model WorkoutTemplate {
+  id        String             @id @default(cuid())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  name      String
+  exercises TemplateExercise[]
+  createdAt DateTime           @default(now())
+}
+
+model TemplateExercise {
+  id         String          @id @default(cuid())
+  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId String
+  name       String
+  sets       Int
+  reps       Int
+  weight     Float?
+  order      Int
+}
+
+model Goal {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  metric    String
+  target    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, metric])
 }

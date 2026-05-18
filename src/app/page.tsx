@@ -2,26 +2,61 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { Dumbbell, TrendingUp, Scale, Camera, Brain, Plus, Flame } from "lucide-react";
+import { Dumbbell, TrendingUp, Scale, Camera, Brain, Plus, Flame, Trophy, Target, Zap } from "lucide-react";
 import Link from "next/link";
-import { format, subDays } from "date-fns";
+import { format, subDays, differenceInCalendarDays, startOfDay } from "date-fns";
+
+function calcStreak(workouts: { date: Date }[]): number {
+  if (workouts.length === 0) return 0;
+  const days = Array.from(new Set(workouts.map((w) => startOfDay(w.date).getTime()))).sort((a, b) => b - a);
+  const todayTs = startOfDay(new Date()).getTime();
+  const yesterdayTs = startOfDay(subDays(new Date(), 1)).getTime();
+  if (days[0] !== todayTs && days[0] !== yesterdayTs) return 0;
+  let streak = 1;
+  for (let i = 1; i < days.length; i++) {
+    if (days[i - 1] - days[i] === 86400000) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function calcAchievements(totalWorkouts: number, streak: number, weightLost: number | null) {
+  const all = [
+    { id: "first", icon: "🏋️", label: "אימון ראשון", desc: "רשמת את האימון הראשון שלך", earned: totalWorkouts >= 1 },
+    { id: "w10", icon: "🔟", label: "10 אימונים", desc: "הגעת ל-10 אימונים", earned: totalWorkouts >= 10 },
+    { id: "w50", icon: "💪", label: "50 אימונים", desc: "חצי מאה אימונים!", earned: totalWorkouts >= 50 },
+    { id: "w100", icon: "🏆", label: "100 אימונים", desc: "מאה אימונים — אגדה!", earned: totalWorkouts >= 100 },
+    { id: "streak3", icon: "🔥", label: "רצף 3 ימים", desc: "3 ימי אימון ברציפות", earned: streak >= 3 },
+    { id: "streak7", icon: "⚡", label: "שבוע שלם", desc: "7 ימי אימון ברציפות", earned: streak >= 7 },
+    { id: "streak30", icon: "🌟", label: "חודש שלם", desc: "30 ימי אימון ברציפות", earned: streak >= 30 },
+    { id: "lose5", icon: "📉", label: "ירידה של 5 ק״ג", desc: "ירדת 5 ק״ג ממשקל ההתחלה", earned: weightLost !== null && weightLost >= 5 },
+  ];
+  return all;
+}
 
 async function getDashboardData(userId: string) {
-  const [totalWorkouts, recentWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts] =
+  const thirtyDaysAgo = subDays(new Date(), 30);
+  const sevenDaysAgo = subDays(new Date(), 7);
+
+  const [totalWorkouts, recentWorkouts, weekWorkouts, allWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts, firstBodyStat] =
     await Promise.all([
       prisma.workout.count({ where: { userId } }),
-      prisma.workout.count({ where: { userId, date: { gte: subDays(new Date(), 30) } } }),
+      prisma.workout.count({ where: { userId, date: { gte: thirtyDaysAgo } } }),
+      prisma.workout.count({ where: { userId, date: { gte: sevenDaysAgo } } }),
+      prisma.workout.findMany({ where: { userId }, select: { date: true }, orderBy: { date: "desc" } }),
       prisma.bodyStat.findFirst({ where: { userId }, orderBy: { date: "desc" } }),
       prisma.bodyStat.findFirst({ where: { userId }, orderBy: { date: "desc" }, skip: 1 }),
       prisma.photo.count({ where: { userId } }),
       prisma.workout.findMany({ where: { userId }, take: 5, orderBy: { date: "desc" }, include: { exercises: true } }),
+      prisma.bodyStat.findFirst({ where: { userId, weight: { not: null } }, orderBy: { date: "asc" } }),
     ]);
-  return { totalWorkouts, recentWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts };
+
+  return { totalWorkouts, recentWorkouts, weekWorkouts, allWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts, firstBodyStat };
 }
 
 export default async function Dashboard() {
   const session = await getSession();
-  const { totalWorkouts, recentWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts } =
+  const { totalWorkouts, recentWorkouts, weekWorkouts, allWorkouts, latestBodyStat, previousBodyStat, totalPhotos, lastWorkouts, firstBodyStat } =
     await getDashboardData(session!.id);
 
   const weightChange =
@@ -29,19 +64,43 @@ export default async function Dashboard() {
       ? (latestBodyStat.weight - previousBodyStat.weight).toFixed(1)
       : null;
 
+  const streak = calcStreak(allWorkouts);
+  const weightLost = firstBodyStat?.weight && latestBodyStat?.weight
+    ? firstBodyStat.weight - latestBodyStat.weight
+    : null;
+  const achievements = calcAchievements(totalWorkouts, streak, weightLost);
+  const earnedAchievements = achievements.filter((a) => a.earned);
+
+  // Weekly report
+  const avgWorkoutsPerWeek = allWorkouts.length > 0
+    ? Math.round((recentWorkouts / 4) * 10) / 10
+    : 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">שלום, {session!.username}! 💪</h1>
           <p className="text-gray-400 text-sm mt-1">{format(new Date(), "EEEE, d בMMMM yyyy")}</p>
         </div>
         <Link href="/workouts/new" className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-medium transition-colors">
-          <Plus className="w-4 h-4" />
-          אימון חדש
+          <Plus className="w-4 h-4" />אימון חדש
         </Link>
       </div>
 
+      {/* Streak banner */}
+      {streak >= 2 && (
+        <div className="bg-gradient-to-r from-orange-500/20 to-red-500/10 border border-orange-500/30 rounded-xl px-5 py-3 flex items-center gap-3">
+          <Flame className="w-6 h-6 text-orange-400 shrink-0" />
+          <div>
+            <p className="font-bold text-white">רצף של {streak} ימים! 🔥</p>
+            <p className="text-sm text-gray-400">המשך כך — אתה בכושר מעולה</p>
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={<Flame className="w-5 h-5 text-orange-400" />} label="אימונים החודש" value={recentWorkouts.toString()} sub="ב-30 ימים אחרונים" color="orange" />
         <StatCard icon={<Dumbbell className="w-5 h-5 text-blue-400" />} label='סה"כ אימונים' value={totalWorkouts.toString()} sub="מהתחלה" color="blue" />
@@ -49,6 +108,55 @@ export default async function Dashboard() {
         <StatCard icon={<Camera className="w-5 h-5 text-purple-400" />} label="תמונות" value={totalPhotos.toString()} sub="לפני/אחרי" color="purple" />
       </div>
 
+      {/* Weekly Report */}
+      {totalWorkouts > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-400" /> דוח שבועי
+          </h2>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-white">{weekWorkouts}</p>
+              <p className="text-xs text-gray-500">אימונים השבוע</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{avgWorkoutsPerWeek}</p>
+              <p className="text-xs text-gray-500">ממוצע שבועי</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">{streak > 0 ? streak : "—"}</p>
+              <p className="text-xs text-gray-500">ימי רצף</p>
+            </div>
+          </div>
+          {latestBodyStat?.weight && firstBodyStat?.weight && firstBodyStat.id !== latestBodyStat.id && (
+            <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between text-sm">
+              <span className="text-gray-500">שינוי משקל מההתחלה</span>
+              <span className={`font-bold ${weightLost && weightLost > 0 ? "text-green-400" : "text-red-400"}`}>
+                {weightLost !== null ? `${weightLost > 0 ? "-" : "+"}${Math.abs(weightLost).toFixed(1)} ק"ג` : "—"}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Achievements */}
+      {earnedAchievements.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-yellow-400" /> הישגים ({earnedAchievements.length}/{achievements.length})
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {achievements.map((a) => (
+              <div key={a.id} className={`rounded-xl p-3 text-center transition-all ${a.earned ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-gray-800/50 border border-gray-700/50 opacity-40"}`}>
+                <p className="text-2xl mb-1">{a.icon}</p>
+                <p className={`text-xs font-semibold ${a.earned ? "text-yellow-300" : "text-gray-500"}`}>{a.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-3">פעולות מהירות</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -59,6 +167,7 @@ export default async function Dashboard() {
         </div>
       </div>
 
+      {/* Recent Workouts */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-white">אימונים אחרונים</h2>
@@ -90,7 +199,7 @@ export default async function Dashboard() {
 
       {totalWorkouts > 0 && (
         <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
-          <TrendingUp className="w-5 h-5 text-orange-400 shrink-0" />
+          <Target className="w-5 h-5 text-orange-400 shrink-0" />
           <p className="text-sm text-gray-300">
             סה&quot;כ אימנת <span className="text-orange-400 font-bold">{totalWorkouts}</span> פעמים.{" "}
             <Link href="/ai" className="text-orange-400 underline underline-offset-2">קבל ניתוח AI ←</Link>

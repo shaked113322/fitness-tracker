@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Dumbbell, Save } from "lucide-react";
+import { Plus, Trash2, Dumbbell, Save, BookOpen, X } from "lucide-react";
 
 interface Exercise {
   name: string;
@@ -10,6 +10,12 @@ interface Exercise {
   reps: number;
   weight: string;
   notes: string;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  exercises: { name: string; sets: number; reps: number; weight: number | null; order: number }[];
 }
 
 const COMMON_EXERCISES = [
@@ -24,28 +30,31 @@ export default function NewWorkoutPage() {
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
-  const [exercises, setExercises] = useState<Exercise[]>([
-    { name: "", sets: 3, reps: 10, weight: "", notes: "" },
-  ]);
+  const [exercises, setExercises] = useState<Exercise[]>([{ name: "", sets: 3, reps: 10, weight: "", notes: "" }]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
 
-  const addExercise = () => {
-    setExercises([...exercises, { name: "", sets: 3, reps: 10, weight: "", notes: "" }]);
+  useEffect(() => {
+    fetch("/api/templates").then((r) => r.json()).then((d) => setTemplates(Array.isArray(d) ? d : []));
+  }, []);
+
+  const loadTemplate = (t: Template) => {
+    setName(t.name);
+    setExercises(t.exercises.map((e) => ({ name: e.name, sets: e.sets, reps: e.reps, weight: e.weight?.toString() ?? "", notes: "" })));
+    setShowTemplates(false);
   };
 
-  const removeExercise = (index: number) => {
-    setExercises(exercises.filter((_, i) => i !== index));
-  };
-
-  const updateExercise = (index: number, field: keyof Exercise, value: string | number) => {
+  const addExercise = () => setExercises([...exercises, { name: "", sets: 3, reps: 10, weight: "", notes: "" }]);
+  const removeExercise = (i: number) => setExercises(exercises.filter((_, idx) => idx !== i));
+  const updateExercise = (i: number, field: keyof Exercise, value: string | number) => {
     const updated = [...exercises];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[i] = { ...updated[i], [field]: value };
     setExercises(updated);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
     setSaving(true);
     try {
       const res = await fetch("/api/workouts", {
@@ -58,7 +67,6 @@ export default function NewWorkoutPage() {
           exercises: exercises.filter((ex) => ex.name.trim()),
         }),
       });
-
       if (res.ok) {
         const data = await res.json();
         router.push(`/workouts/${data.id}`);
@@ -70,52 +78,61 @@ export default function NewWorkoutPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-      <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-        <Dumbbell className="w-6 h-6 text-orange-400" />
-        אימון חדש
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Dumbbell className="w-6 h-6 text-orange-400" />אימון חדש
+        </h1>
+        {templates.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowTemplates(!showTemplates)}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 px-3 py-2 rounded-xl transition-colors"
+          >
+            <BookOpen className="w-4 h-4" />טען תבנית
+          </button>
+        )}
+      </div>
+
+      {/* Templates picker */}
+      {showTemplates && (
+        <div className="bg-gray-900 border border-orange-500/30 rounded-xl p-4 space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-white">בחר תבנית</p>
+            <button onClick={() => setShowTemplates(false)}><X className="w-4 h-4 text-gray-500" /></button>
+          </div>
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => loadTemplate(t)}
+              className="w-full text-right bg-gray-800 hover:bg-gray-700 rounded-lg px-4 py-3 transition-colors"
+            >
+              <p className="font-medium text-white">{t.name}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t.exercises.length} תרגילים</p>
+            </button>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Workout Info */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
           <h2 className="font-semibold text-white">פרטי האימון</h2>
           <div>
             <label className="block text-sm text-gray-400 mb-1.5">שם האימון *</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="למשל: גב + כתפיים, פלג גוף עליון..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors"
-              required
-            />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="למשל: גב + כתפיים" required
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1.5">משך (דקות)</label>
-              <input
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="60"
-                min="1"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors"
-              />
-            </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1.5">משך (דקות)</label>
+            <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="60" min="1"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors" />
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1.5">הערות</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="איך הרגשת, מה עבד טוב..."
-              rows={2}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors resize-none"
-            />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="איך הרגשת, מה עבד טוב..." rows={2}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors resize-none" />
           </div>
         </div>
 
-        {/* Exercises */}
         <div className="space-y-3">
           <h2 className="font-semibold text-white">תרגילים</h2>
           {exercises.map((exercise, idx) => (
@@ -123,86 +140,46 @@ export default function NewWorkoutPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-orange-400">תרגיל {idx + 1}</span>
                 {exercises.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeExercise(idx)}
-                    className="text-gray-600 hover:text-red-400 transition-colors"
-                  >
+                  <button type="button" onClick={() => removeExercise(idx)} className="text-gray-600 hover:text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
               </div>
-
               <div>
-                <input
-                  type="text"
-                  value={exercise.name}
-                  onChange={(e) => updateExercise(idx, "name", e.target.value)}
-                  placeholder="שם התרגיל"
-                  list={`exercises-${idx}`}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors"
-                />
-                <datalist id={`exercises-${idx}`}>
-                  {COMMON_EXERCISES.map((ex) => (
-                    <option key={ex} value={ex} />
-                  ))}
-                </datalist>
+                <input type="text" value={exercise.name} onChange={(e) => updateExercise(idx, "name", e.target.value)}
+                  placeholder="שם התרגיל" list={`exercises-${idx}`}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors" />
+                <datalist id={`exercises-${idx}`}>{COMMON_EXERCISES.map((ex) => <option key={ex} value={ex} />)}</datalist>
               </div>
-
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">סטים</label>
-                  <input
-                    type="number"
-                    value={exercise.sets}
-                    onChange={(e) => updateExercise(idx, "sets", parseInt(e.target.value) || 1)}
-                    min="1"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 transition-colors text-center"
-                  />
+                  <input type="number" value={exercise.sets} onChange={(e) => updateExercise(idx, "sets", parseInt(e.target.value) || 1)} min="1"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 transition-colors text-center" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">חזרות</label>
-                  <input
-                    type="number"
-                    value={exercise.reps}
-                    onChange={(e) => updateExercise(idx, "reps", parseInt(e.target.value) || 1)}
-                    min="1"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 transition-colors text-center"
-                  />
+                  <input type="number" value={exercise.reps} onChange={(e) => updateExercise(idx, "reps", parseInt(e.target.value) || 1)} min="1"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-orange-500 transition-colors text-center" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">משקל (ק&quot;ג)</label>
-                  <input
-                    type="number"
-                    value={exercise.weight}
-                    onChange={(e) => updateExercise(idx, "weight", e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="0.5"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors text-center"
-                  />
+                  <input type="number" value={exercise.weight} onChange={(e) => updateExercise(idx, "weight", e.target.value)}
+                    placeholder="0" min="0" step="0.5"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-orange-500 transition-colors text-center" />
                 </div>
               </div>
             </div>
           ))}
-
-          <button
-            type="button"
-            onClick={addExercise}
-            className="w-full flex items-center justify-center gap-2 border border-dashed border-gray-700 hover:border-orange-500 text-gray-500 hover:text-orange-400 rounded-xl py-3 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            הוסף תרגיל
+          <button type="button" onClick={addExercise}
+            className="w-full flex items-center justify-center gap-2 border border-dashed border-gray-700 hover:border-orange-500 text-gray-500 hover:text-orange-400 rounded-xl py-3 transition-colors">
+            <Plus className="w-4 h-4" />הוסף תרגיל
           </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={saving || !name.trim()}
-          className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? "שומר..." : "שמור אימון"}
+        <button type="submit" disabled={saving || !name.trim()}
+          className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-colors">
+          <Save className="w-4 h-4" />{saving ? "שומר..." : "שמור אימון"}
         </button>
       </form>
     </div>

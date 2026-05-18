@@ -59,10 +59,10 @@ export default function Navbar() {
               </Link>
             )}
             {user && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Link href="/profile" className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded-lg transition-colors ${pathname === "/profile" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"}`}>
                 <User className="w-4 h-4" />
                 <span>{user.username}</span>
-              </div>
+              </Link>
             )}
             <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-red-400 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-800">
               <LogOut className="w-4 h-4" />
@@ -84,7 +84,7 @@ export default function Navbar() {
               </Link>
             ))}
             {user?.isAdmin && <Link href="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-yellow-400 hover:bg-gray-800 transition-colors"><Shield className="w-4 h-4" />Admin</Link>}
-            {user && <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500"><User className="w-4 h-4" />{user.username}</div>}
+            {user && <Link href="/profile" onClick={() => setMenuOpen(false)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${pathname === "/profile" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"}`}><User className="w-4 h-4" />{user.username}</Link>}
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-gray-800 transition-colors">
               <LogOut className="w-4 h-4" />יציאה
             </button>
