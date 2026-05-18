@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Unlock, KeyRound, Check, AlertCircle } from "lucide-react";
+import { Ban, Unlock, KeyRound, Check, AlertCircle, LockOpen } from "lucide-react";
 
 export default function UserAdminActions({
-  userId, username, banned, isAdmin,
+  userId, username, banned, isAdmin, lockedUntil,
 }: {
-  userId: string; username: string; banned: boolean; isAdmin: boolean;
+  userId: string; username: string; banned: boolean; isAdmin: boolean; lockedUntil: Date | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const isLocked = lockedUntil && new Date(lockedUntil) > new Date();
 
   const action = async (body: Record<string, unknown>, label: string) => {
     setLoading(label);
@@ -47,6 +49,13 @@ export default function UserAdminActions({
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
       <h2 className="font-semibold text-white">פעולות ניהול עבור {username}</h2>
 
+      {isLocked && (
+        <div className="flex items-center gap-2 text-sm bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-lg px-3 py-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          חשבון נעול זמנית (יותר מדי ניסיונות כניסה כושלים)
+        </div>
+      )}
+
       {message && (
         <div className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${message.type === "ok" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
           {message.type === "ok" ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -68,6 +77,18 @@ export default function UserAdminActions({
           {banned ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
           {loading === "ban" ? "..." : banned ? "בטל חסימה" : "חסום משתמש"}
         </button>
+
+        {/* Unlock locked account */}
+        {isLocked && (
+          <button
+            onClick={() => action({ unlock: true }, "unlock")}
+            disabled={loading !== null}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 transition-colors"
+          >
+            <LockOpen className="w-4 h-4" />
+            {loading === "unlock" ? "..." : "שחרר נעילה"}
+          </button>
+        )}
 
         {/* Reset password */}
         <button

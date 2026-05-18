@@ -32,6 +32,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (typeof body.banned === "boolean") update.banned = body.banned;
   if (typeof body.isAdmin === "boolean") update.isAdmin = body.isAdmin;
+  if (body.unlock === true) {
+    update.failedLoginAttempts = 0;
+    update.lockedUntil = null;
+  }
   if (body.newPassword) {
     if (body.newPassword.length < 6) return Response.json({ error: "סיסמה קצרה מדי" }, { status: 400 });
     update.password = await bcryptHash(body.newPassword, 10);

@@ -54,6 +54,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
           username={user.username}
           banned={user.banned}
           isAdmin={user.isAdmin}
+          lockedUntil={user.lockedUntil}
         />
       )}
 
